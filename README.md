@@ -8,13 +8,13 @@ It helps users upload CSV and Excel files, clean the data, review key metrics, v
 
 This app is designed for people working with messy spreadsheet data. It makes it easier to:
 
-- 🧽 clean up raw files
-- 🗑️ remove duplicate records
-- 🔢 fill missing numeric values
-- ✅ select useful columns
-- 🔍 review key dataset information
-- 📊 create quick visual insights
-- 📤 export cleaned data back into CSV or Excel
+-  clean up raw files
+-  remove duplicate records
+-  fill missing numeric values
+- select useful columns
+-  review key dataset information
+-  create quick visual insights
+- export cleaned data back into CSV or Excel
 
 ## 🚀 Main Features
 
@@ -35,12 +35,12 @@ This project shows practical data-handling skills using real tools that are wide
 
 It combines:
 
-- 📂 file processing
-- 🧹 data cleaning
-- 🔎 data analysis
-- 📌 business KPI checks
-- 📉 data visualization
-- 🖥️ user interface building
+- file processing
+-  data cleaning
+-  data analysis
+-  business KPI checks
+-  data visualization
+-  user interface building
 
 ## 🛠️ Tech Stack
 
@@ -77,13 +77,13 @@ Then open the local URL shown in the terminal in your browser. 🌐
 
 ## 📖 How to Use
 
-1. 📤 Upload one or more CSV or Excel files.
-2. 👀 Review the preview and summary report.
-3. 🧹 Clean the dataset if needed.
-4. ✅ Choose which columns to keep.
-5. 📊 Turn on the visualization section if you want charts.
-6. 🔄 Select the output format: CSV or Excel.
-7. ⬇️ Click the download button to save the cleaned file.
+1.  Upload one or more CSV or Excel files.
+2.  Review the preview and summary report.
+3.  Clean the dataset if needed.
+4.  Choose which columns to keep.
+5.  Turn on the visualization section if you want charts.
+6.  Select the output format: CSV or Excel.
+7.  Click the download button to save the cleaned file.
 
 ## 🧪 Example Use Case
 
@@ -91,12 +91,12 @@ A user may receive sales data in Excel format, remove duplicate entries, fill mi
 
 ## 🔮 Planned Improvements
 
-- 🛡️ improve validation for unusual or broken files
-- ✍️ add stronger text-cleaning options
-- ➕ add more missing-value handling choices
-- 🎨 improve dashboard styling
-- 📈 add more business KPIs and data checks
-- 🌍 deploy the app online for public access
+-  improve validation for unusual or broken files
+-  add stronger text-cleaning options
+-  add more missing-value handling choices
+-  improve dashboard styling
+-  add more business KPIs and data checks
+-  deploy the app online for public access
 
 ## 📄 License
 
