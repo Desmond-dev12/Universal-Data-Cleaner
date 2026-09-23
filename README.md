@@ -18,16 +18,16 @@ This app is designed for people working with messy spreadsheet data. It makes it
 
 ## 🚀 Main Features
 
-- 📁 upload multiple CSV and Excel files
-- 👀 preview the first rows of each dataset
-- 🗑️ remove duplicate rows
-- 🧮 fill missing numeric values using the column average
-- ✅ select which columns to keep before export
-- 📈 view bar, line, scatter, and histogram charts
-- 📊 review summary statistics
-- 💼 detect common sales-related KPI columns when they exist
-- 🔄 convert data into CSV or Excel format
-- ⬇️ download the cleaned file
+-  upload multiple CSV and Excel files
+-  preview the first rows of each dataset
+-  remove duplicate rows
+-  fill missing numeric values using the column average
+-  select which columns to keep before export
+-  view bar, line, scatter, and histogram charts
+-  review summary statistics
+-  detect common sales-related KPI columns when they exist
+-  convert data into CSV or Excel format
+-  download the cleaned file
 
 ## 💡 Why This Project Matters
 
@@ -45,8 +45,8 @@ It combines:
 ## 🛠️ Tech Stack
 
 - 🐍 Python
-- 🐼 Pandas
-- 🎈 Streamlit
+-  Pandas
+-  Streamlit
 - 📊 Plotly
 - 📗 OpenPyXL
 
