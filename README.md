@@ -96,7 +96,7 @@ A user may receive sales data in Excel format, remove duplicate entries, fill mi
 -  add more missing-value handling choices
 -  improve dashboard styling
 -  add more business KPIs and data checks
--  deploy the app online for public access
+  
 
 ## 📄 License
 
