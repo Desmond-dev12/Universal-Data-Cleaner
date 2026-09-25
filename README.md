@@ -44,11 +44,11 @@ It combines:
 
 ## 🛠️ Tech Stack
 
-- 🐍 Python
+-  Python
 -  Pandas
 -  Streamlit
-- 📊 Plotly
-- 📗 OpenPyXL
+-  Plotly
+-  OpenPyXL
 
 ## 📁 Project Structure
 
