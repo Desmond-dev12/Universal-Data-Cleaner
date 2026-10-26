@@ -1,189 +1,345 @@
 import os
+import io
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from io import BytesIO
 
 st.set_page_config(page_title="Universal Data Cleaner", layout="wide")
 
-st.title("💿Universal Data Cleaner")
-st.write("Convert your files between CSV and Excel formats with built-in data cleaning and visualization")
+# =========================
+# Utility functions
+# =========================
+
+def normalize_column_name(col):
+    return str(col).strip().lower().replace(" ", "_")
+
+
+def remove_currency_symbols(value):
+    if pd.isna(value):
+        return value
+    if isinstance(value, str):
+        value = value.strip()
+        value = value.replace("$", "").replace("GHS", "").replace(",", "")
+        return value
+    return value
+
+
+def clean_text_series(series):
+    s = series.astype(str).str.strip()
+    s = s.str.replace(r"[^A-Za-z0-9\s%._-]", "", regex=True)
+    return s
+
+
+def convert_numeric_like_columns(df):
+    df = df.copy()
+    for col in df.columns:
+        if df[col].dropna().empty:
+            continue
+
+        sample = df[col].dropna().astype(str)
+        is_numeric_like = sample.str.contains(
+            r"^\d+(\.\d+)?$|^\$\d+(\.\d+)?$|^\d+,\d+\.\d+$|^\d+\s*GHS$",
+            regex=True,
+            case=False,
+        ).any()
+
+        if is_numeric_like:
+            df[col] = df[col].apply(remove_currency_symbols)
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    return df
+
+
+def convert_yes_no_values(df):
+    df = df.copy()
+    yes_no_map = {
+        "yes": True,
+        "y": True,
+        "true": True,
+        "no": False,
+        "n": False,
+        "false": False,
+    }
+
+    for col in df.columns:
+        sample = df[col].dropna().astype(str).str.lower()
+        if sample.empty:
+            continue
+        if sample.str.strip().isin(yes_no_map.keys()).all():
+            df[col] = sample.map(yes_no_map)
+    return df
+
+
+def detect_kpi_columns(df):
+    sales_aliases = [
+        "total_sales",
+        "sales",
+        "revenue",
+        "total_revenue",
+        "amount",
+        "gross_sales",
+        "total_amount",
+    ]
+    quantity_aliases = [
+        "quantity",
+        "qty",
+        "total_quantity",
+        "units",
+        "items",
+        "total_units",
+    ]
+    transaction_aliases = [
+        "transactions",
+        "total_transactions",
+        "order_count",
+        "num_orders",
+        "orders",
+    ]
+
+    def find_column(columns, aliases):
+        normalized = {str(col).strip().lower().replace(" ", "_"): col for col in columns}
+        for alias in aliases:
+            if alias in normalized:
+                return normalized[alias]
+        return None
+
+    return {
+        "sales": find_column(df.columns, sales_aliases),
+        "quantity": find_column(df.columns, quantity_aliases),
+        "transactions": find_column(df.columns, transaction_aliases),
+    }
+
+
+def get_summary(df):
+    return {
+        "rows": len(df),
+        "columns": len(df.columns),
+        "missing_values": int(df.isna().sum().sum()),
+        "duplicates": int(df.duplicated().sum()),
+    }
+
+
+def create_snapshot(df):
+    return df.copy()
+
+
+def restore_snapshot(df, snapshot):
+    return snapshot.copy()
+
+
+def build_chart(df, chart_type, x_col, y_col):
+    if chart_type == "Bar":
+        return px.bar(df, x=x_col, y=y_col, title=f"{y_col} by {x_col}")
+    elif chart_type == "Line":
+        return px.line(df, x=x_col, y=y_col, title=f"{y_col} by {x_col}")
+    elif chart_type == "Scatter":
+        return px.scatter(df, x=x_col, y=y_col, title=f"{y_col} vs {x_col}")
+    elif chart_type == "Histogram":
+        return px.histogram(df, x=y_col, title=f"Distribution of {y_col}")
+    return None
+
+
+def prepare_export(df, export_type):
+    buffer = io.BytesIO()
+
+    if export_type == "CSV":
+        df.to_csv(buffer, index=False)
+        return buffer.getvalue(), "cleaned_data.csv", "text/csv"
+
+    df.to_excel(buffer, index=False)
+    return buffer.getvalue(), "cleaned_data.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+# =========================
+# Main cleaning function
+# =========================
+
+def clean_dataframe(df):
+    df = df.copy()
+
+    df.columns = [normalize_column_name(col) for col in df.columns]
+
+    for col in df.select_dtypes(include=["object"]).columns:
+        df[col] = clean_text_series(df[col])
+
+    df = convert_numeric_like_columns(df)
+    df = convert_yes_no_values(df)
+
+    numeric_cols = df.select_dtypes(include=["number"]).columns
+    for col in numeric_cols:
+        df[col] = df[col].fillna(df[col].mean())
+
+    df = df.drop_duplicates()
+    return df
+
+
+# =========================
+# App layout
+# =========================
+
+st.title("💿 Universal Data Cleaner")
+st.caption("Clean messy CSV or Excel files, review summaries, visualize trends, and export cleaned data.")
 
 uploaded_files = st.file_uploader(
-    "Upload your files (CSV or Excel):",
+    "Upload CSV or Excel files",
     type=["csv", "xlsx"],
     accept_multiple_files=True,
 )
 
 if uploaded_files:
-    for file in uploaded_files:
-        file_ext = os.path.splitext(file.name)[-1].lower()
+    for uploaded_file in uploaded_files:
+        file_name = uploaded_file.name
+        file_ext = os.path.splitext(file_name)[1].lower()
 
         if file_ext == ".csv":
-            df = pd.read_csv(file)
+            df = pd.read_csv(uploaded_file)
         elif file_ext == ".xlsx":
-            df = pd.read_excel(file)
+            df = pd.read_excel(uploaded_file)
         else:
-            st.error(f"Unsupported file type: {file_ext}. Please upload a CSV or Excel file.")
+            st.error(f"Unsupported file type: {file_name}")
             continue
 
-        st.write(f"**File Name:** {file.name}")
-        st.write(f"**File Size:** {file.size / 1024:.2f} KB")
-        st.write("**Preview the head of the Dataframe**")
-        st.dataframe(df.head())
+        snapshot = create_snapshot(df)
 
-        st.subheader(f"📋 Summary Report for {file.name}")
+        st.subheader(file_name)
+        st.write(f"File size: {uploaded_file.size / 1024:.2f} KB")
 
-        report_cols = st.columns(4)
-        report_cols[0].metric("Rows", len(df))
-        report_cols[1].metric("Columns", len(df.columns))
-        report_cols[2].metric("Missing Values", int(df.isna().sum().sum()))
-        report_cols[3].metric("Duplicates", int(df.duplicated().sum()))
+        with st.expander("Preview raw data", expanded=True):
+            st.dataframe(df.head())
 
-        sales_aliases = ["total_sales", "sales", "revenue", "total_revenue", "amount", "gross_sales", "total_amount"]
-        quantity_aliases = ["quantity", "qty", "total_quantity", "units", "items", "total_units"]
-        transactions_aliases = ["transactions", "total_transactions", "order_count", "num_orders", "orders"]
+        summary = get_summary(df)
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Rows", summary["rows"])
+        c2.metric("Columns", summary["columns"])
+        c3.metric("Missing values", summary["missing_values"])
+        c4.metric("Duplicates", summary["duplicates"])
 
-        def find_column_name(columns, aliases):
-            normalized = {str(col).strip().lower().replace(" ", "_"): col for col in columns}
-            for alias in aliases:
-                if alias in normalized:
-                    return normalized[alias]
-            return None
-        
-# find the actual column names based on aliases
-        sales_col = find_column_name(df.columns, sales_aliases)
-        quantity_col = find_column_name(df.columns, quantity_aliases)
-        transactions_col = find_column_name(df.columns, transactions_aliases)
-
+        kpis = detect_kpi_columns(df)
         kpi_cols = st.columns(4)
         metric_count = 0
 
-        if sales_col is not None:
+        if kpis["sales"]:
+            sales_col = kpis["sales"]
             total_sales = pd.to_numeric(df[sales_col], errors="coerce").sum()
             kpi_cols[metric_count].metric("Total Sales", f"${total_sales:,.2f}")
             metric_count += 1
 
-        if quantity_col is not None:
+        if kpis["quantity"]:
+            quantity_col = kpis["quantity"]
             total_quantity = pd.to_numeric(df[quantity_col], errors="coerce").sum()
             kpi_cols[metric_count].metric("Total Quantity", f"{total_quantity:,.0f}")
             metric_count += 1
 
-        if transactions_col is not None:
-            total_transactions = pd.to_numeric(df[transactions_col], errors="coerce").sum()
+        if kpis["transactions"]:
+            tx_col = kpis["transactions"]
+            total_transactions = pd.to_numeric(df[tx_col], errors="coerce").sum()
             kpi_cols[metric_count].metric("Total Transactions", f"{total_transactions:,.0f}")
             metric_count += 1
 
-        if sales_col is not None and transactions_col is not None:
-            total_sales = pd.to_numeric(df[sales_col], errors="coerce").sum()
-            total_transactions = pd.to_numeric(df[transactions_col], errors="coerce").sum()
+        if kpis["sales"] and kpis["transactions"]:
+            total_sales = pd.to_numeric(df[kpis["sales"]], errors="coerce").sum()
+            total_transactions = pd.to_numeric(df[kpis["transactions"]], errors="coerce").sum()
             aov = total_sales / total_transactions if total_transactions else 0
             kpi_cols[metric_count].metric("AOV", f"${aov:,.2f}")
             metric_count += 1
 
         if metric_count == 0:
-            st.info("No sales or transaction KPI columns were found in this dataset.")
+            st.info("No sales-related KPI columns were detected in this dataset.")
 
-        st.subheader(f"🧹 Data Cleaning Options for {file.name}")
-        if st.checkbox(f"Clean Data for {file.name}"):
-            col1, col2 = st.columns(2)
+        st.subheader("🧹 Data Cleaning Options")
 
-            with col1:
-                if st.button(f"Remove Duplicate from {file.name}"):
-                    df = df.drop_duplicates()
-                    st.success("Duplicates removed successfully")
+        col1, col2 = st.columns(2)
 
-            with col2:
-                if st.button(f"Fill Missing Values for {file.name}"):
-                    numeric_cols = df.select_dtypes(include=["int64", "float64"]).columns
-                    if len(numeric_cols):
-                        df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
-                        st.success("Missing values have been filled!")
-                    else:
-                        st.warning("No numeric columns were found to fill.")
+        with col1:
+            trim_whitespace = st.checkbox("Trim whitespace", value=True)
+            remove_special_chars = st.checkbox("Remove special characters", value=True)
+            standardize_case = st.checkbox("Standardize lowercase text", value=False)
 
-        st.subheader("Select Columns to convert")
-        columns = st.multiselect(
-            f"Choose columns for {file.name}",
+        with col2:
+            fill_missing_numeric = st.checkbox("Fill missing numeric values with mean", value=True)
+            remove_duplicate_rows = st.checkbox("Remove duplicate rows", value=True)
+            drop_empty_rows = st.checkbox("Drop rows with all missing values", value=False)
+
+        if st.button("Apply Cleaning"):
+            cleaned_df = df.copy()
+
+            for col in cleaned_df.select_dtypes(include=["object"]).columns:
+                s = cleaned_df[col].astype(str)
+
+                if trim_whitespace:
+                    s = s.str.strip()
+
+                if standardize_case:
+                    s = s.str.lower()
+
+                if remove_special_chars:
+                    s = s.str.replace(r"[^A-Za-z0-9\s%._-]", "", regex=True)
+
+                cleaned_df[col] = s
+
+            cleaned_df = convert_numeric_like_columns(cleaned_df)
+            cleaned_df = convert_yes_no_values(cleaned_df)
+
+            if fill_missing_numeric:
+                numeric_cols = cleaned_df.select_dtypes(include=["number"]).columns
+                for col in numeric_cols:
+                    cleaned_df[col] = cleaned_df[col].fillna(cleaned_df[col].mean())
+
+            if remove_duplicate_rows:
+                cleaned_df = cleaned_df.drop_duplicates()
+
+            if drop_empty_rows:
+                cleaned_df = cleaned_df.dropna(how="all")
+
+            df = cleaned_df
+            st.success("Cleaning applied successfully!")
+
+        if st.button("Undo to previous version"):
+            df = restore_snapshot(df, snapshot)
+            st.success("Restored previous version successfully!")
+
+        st.subheader("Column selection")
+        selected_columns = st.multiselect(
+            "Choose columns to keep",
             df.columns,
-            default=df.columns,
-            key=f"columns_{file.name}",
+            default=list(df.columns),
         )
-        df = df[columns]
+        if selected_columns:
+            df = df[selected_columns]
 
-        st.subheader("📊Data Visualization")
-        if st.checkbox(f"Show Visualization for {file.name}", key=f"visualize_{file.name}"):
-            numeric_columns = df.select_dtypes(include="number").columns.tolist()
-            all_columns = df.columns.tolist()
+        st.subheader("📊 Data Visualization")
+        show_visuals = st.checkbox("Show Visualization", value=True)
 
-            if not all_columns:
-                st.warning("Select at least one column to visualize.")
-            elif not numeric_columns:
-                st.info("Visualization requires at least one numeric column.")
+        if show_visuals:
+            numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
+            all_cols = df.columns.tolist()
+
+            if not all_cols:
+                st.warning("No columns available to visualize.")
+            elif not numeric_cols:
+                st.info("No numeric columns are available for visualization.")
             else:
-                chart_type = st.selectbox(
-                    "Chart type",
-                    ["Bar", "Line", "Scatter", "Histogram"],
-                    key=f"chart_type_{file.name}",
-                )
+                chart_type = st.selectbox("Chart type", ["Bar", "Line", "Scatter", "Histogram"])
+                x_col = st.selectbox("X axis", all_cols)
+                y_col = st.selectbox("Y axis", numeric_cols)
 
-                if chart_type == "Histogram":
-                    histogram_column = st.selectbox(
-                        "Column",
-                        numeric_columns,
-                        key=f"histogram_column_{file.name}",
-                    )
-                    chart = px.histogram(df, x=histogram_column, title=f"Distribution of {histogram_column}")
-                elif chart_type == "Scatter":
-                    if len(numeric_columns) < 2:
-                        st.info("Scatter plots require at least two numeric columns.")
-                        chart = None
-                    else:
-                        x_column, y_column = st.columns(2)
-                        with x_column:
-                            x_axis = st.selectbox("X-axis", numeric_columns, key=f"scatter_x_{file.name}")
-                        with y_column:
-                            y_axis = st.selectbox("Y-axis", numeric_columns, index=1, key=f"scatter_y_{file.name}")
-                        chart = px.scatter(df, x=x_axis, y=y_axis, title=f"{y_axis} vs {x_axis}")
-                else:
-                    x_axis, y_axis = st.columns(2)
-                    with x_axis:
-                        x_column = st.selectbox("X-axis", all_columns, key=f"{chart_type}_x_{file.name}")
-                    with y_axis:
-                        y_column = st.selectbox("Y-axis", numeric_columns, key=f"{chart_type}_y_{file.name}")
-                    chart = px.bar(df, x=x_column, y=y_column, title=f"{y_column} by {x_column}") if chart_type == "Bar" else px.line(df, x=x_column, y=y_column, title=f"{y_column} by {x_column}")
-
+                chart = build_chart(df, chart_type, x_col, y_col)
                 if chart is not None:
                     st.plotly_chart(chart, use_container_width=True)
 
                 st.write("**Summary Statistics**")
-                st.dataframe(df[numeric_columns].describe())
+                st.dataframe(df[numeric_cols].describe())
 
-        st.subheader("Conversion Options")
-        conversion_type = st.radio(
-            f"Convert {file.name} to:",
-            ["CSV", "Excel"],
-            key=f"conversion_type_{file.name}"
-        )
+        st.subheader("Conversion options")
+        export_type = st.radio("Export as", ["CSV", "Excel"])
 
-        if st.button(f"Convert {file.name}", key=f"convert_{file.name}"):
-            buffer = BytesIO()
-
-            if conversion_type == "CSV":
-                df.to_csv(buffer, index=False)
-                output_name = os.path.splitext(file.name)[0] + ".csv"
-                mime_type = "text/csv"
-            else:
-                df.to_excel(buffer, index=False)
-                output_name = os.path.splitext(file.name)[0] + ".xlsx"
-                mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
-            buffer.seek(0)
+        if st.button("Prepare Download"):
+            output_data, output_name, mime_type = prepare_export(df, export_type)
             st.download_button(
-                label=f"Download {file.name} as {conversion_type}",
-                data=buffer,
+                label=f"Download {output_name}",
+                data=output_data,
                 file_name=output_name,
                 mime=mime_type,
-                key=f"download_{file.name}",
             )
 
+        st.markdown("---")
