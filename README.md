@@ -1,65 +1,75 @@
 # 🧹 Universal Data Cleaner
 
-Universal Data Cleaner is a simple data-cleaning and conversion app built with Python and Streamlit.
+Universal Data Cleaner is a practical Python and Streamlit app for cleaning messy CSV and Excel files, reviewing dataset quality, and exporting cleaned data for analysis.
 
-It helps users upload CSV and Excel files, clean the data, review key metrics, visualize patterns, and export the cleaned file in a new format.
+It is designed for users working with real-world business data that may contain missing values, inconsistent formatting, duplicate rows, currency strings, and messy text fields.
 
 ## 📋 Project Overview
 
-This app is designed for people working with messy spreadsheet data. It makes it easier to:
+This app helps users:
 
--  clean up raw files
--  remove duplicate records
--  fill missing numeric values
-- select useful columns
--  review key dataset information
--  create quick visual insights
-- export cleaned data back into CSV or Excel
+- upload CSV and Excel files
+- preview raw data before cleaning
+- remove duplicate records
+- trim whitespace and clean messy text values
+- convert number-like strings and currency values into numeric formats
+- fill missing numeric values using the column mean
+- detect basic sales-related KPI columns automatically
+- visualize cleaned data with charts
+- export the cleaned file as CSV or Excel
+- undo to the previous version before cleaning
 
 ## 🚀 Main Features
 
--  upload multiple CSV and Excel files
--  preview the first rows of each dataset
--  remove duplicate rows
--  fill missing numeric values using the column average
--  select which columns to keep before export
--  view bar, line, scatter, and histogram charts
--  review summary statistics
--  detect common sales-related KPI columns when they exist
--  convert data into CSV or Excel format
--  download the cleaned file
+- upload multiple CSV and Excel files
+- preview the first rows of each dataset
+- view key summary metrics (rows, columns, missing values, duplicates)
+- remove duplicate rows
+- trim whitespace from text fields
+- remove special characters from text content
+- normalize lowercase text where needed
+- convert text values like `$500`, `1,250.00`, and `500 GHS` into numeric values
+- convert yes/no fields into boolean-style values
+- fill missing numeric values using column averages
+- detect sales-related KPI fields automatically
+- select which columns to keep before export
+- view bar, line, scatter, and histogram charts
+- export cleaned output in CSV or Excel format
+- restore the previous version with undo
 
 ## 💡 Why This Project Matters
 
-This project shows practical data-handling skills using real tools that are widely used in analytics and business work.
+This project demonstrates real-world data handling skills that are useful in analytics, business intelligence, and reporting work.
 
 It combines:
 
 - file processing
--  data cleaning
--  data analysis
--  business KPI checks
--  data visualization
--  user interface building
+- data cleaning
+- data type conversion
+- missing value handling
+- KPI detection
+- basic visualization
+- user interface design
+- export workflows
 
 ## 🛠️ Tech Stack
 
--  Python
--  Pandas
--  Streamlit
--  Plotly
--  OpenPyXL
+- Python
+- Pandas
+- Streamlit
+- Plotly
+- OpenPyXL
 
 ## 📁 Project Structure
 
-- `unicleaner1.py` - 🖥️ main Streamlit app
-- `requirements.txt` - 📦 project dependencies
-- `README.md` - 📖 project documentation
+- `unicleaner1.py` - main Streamlit app
+- `requirements.txt` - project dependencies
+- `README.md` - project documentation
 
 ## ⚙️ Installation
 
-1. 📂 Open the project folder in your terminal.
-2. 📦 Install the required packages:
+1. Open the project folder in your terminal.
+2. Install the required packages:
 
 ```bash
 pip install -r requirements.txt
@@ -73,31 +83,40 @@ From the project folder, run:
 streamlit run unicleaner1.py
 ```
 
-Then open the local URL shown in the terminal in your browser. 🌐
+Then open the local URL shown in the terminal in your browser.
 
 ## 📖 How to Use
 
-1.  Upload one or more CSV or Excel files.
-2.  Review the preview and summary report.
-3.  Clean the dataset if needed.
-4.  Choose which columns to keep.
-5.  Turn on the visualization section if you want charts.
-6.  Select the output format: CSV or Excel.
-7.  Click the download button to save the cleaned file.
+1. Upload one or more CSV or Excel files.
+2. Review the preview and summary report.
+3. Apply cleaning options such as whitespace removal, text cleanup, numeric conversion, or missing-value filling.
+4. Choose which columns to keep before export.
+5. View charts if needed.
+6. Export the cleaned data as CSV or Excel.
+7. Use the undo button to restore the previous raw file version if needed.
 
-## 🧪 Example Use Case
+## 🧪 Example Use Cases
 
-A user may receive sales data in Excel format, remove duplicate entries, fill missing values, review the summary metrics, and export the cleaned data for reporting or further analysis.
+A user may receive a messy sales file with:
+
+- duplicate rows
+- currency symbols in numeric columns
+- missing values
+- inconsistent labels
+- text values that should be treated as numbers
+
+This app helps clean the file and prepare it for reporting, analysis, or upload into a dashboard.
 
 ## 🔮 Planned Improvements
 
--  improve validation for unusual or broken files
--  add stronger text-cleaning options
--  add more missing-value handling choices
--  improve dashboard styling
--  add more business KPIs and data checks
-  
+- add stronger validation for broken or malformed files
+- add more missing-value handling options (median, mode, custom fill)
+- support multi-file merge and join workflows
+- add reusable cleaning templates
+- add more business KPI checks
+- improve dashboard styling and layout
+- add saved user workflows and audit logs
 
 ## 📄 License
 
-This project is intended for learning, personal use, and portfolio development.
+This project is intended for learning, portfolio development, and practical data-cleaning use.
